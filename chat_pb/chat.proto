@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+
+
+package chat;
+
+option go_package = "./chat"; // папка куда отправиться сгенрированный файл
+
+
+service ChatExample{
+	rpc sendMessage(ChatMessage) returns (ChatMessage);
+}
+import "google/protobuf/timestamp.proto";
+message ChatMessage{
+	string text =1 ;
+	int64 id =2 ;
+	google.protobuf.Timestamp created = 3;
+}
+
