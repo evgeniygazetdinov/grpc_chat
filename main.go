@@ -1,24 +1,30 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"grpcchat/variable"
+	"io/ioutil"
+	"log"
 	"math/rand"
+	"net/http"
 	"strconv"
 
 	"github.com/bxcodec/faker/v4"
 )
 
 type SomeUser struct {
-	Gender     string
-	Name       string
-	Location   string
-	Email      string
-	AppVersion string
-	Bio        string
-	Token      string
-	UserTokens string
-	IdUser     int
-	Interview  false
+	Gender      string
+	Name        string
+	Location    string
+	Email       string
+	AppVersion  string
+	Bio         string
+	Token       string
+	UserHeaders string
+	IdUser      int
+	Interview   bool
 }
 
 func getRandomLocation() string {
@@ -54,17 +60,69 @@ func getRandomLanguage() string {
 	}
 	return result
 }
+func getAppVersion() string {
+	return "1.5.7"
+}
 
-func generateRandomLocation() string {
-	return "someLocationString"
+func getUserHeaders(token string, host string) map[string]string {
+	userHeaderData := make(map[string]string)
+	userHeaderData["Authorization"] = fmt.Sprintf("JWT %s", token)
+	userHeaderData["HOST"] = host
+	return userHeaderData
+}
+
+func addHeadersOnRequest(someRequest *http.Request, host string) *http.Request {
+	someRequest.Header.Add("Content-Type", "application/json")
+	someRequest.Header.Add("Accept-Language", "ru")
+	someRequest.Header.Add("accept", "application/json")
+	someRequest.Header.Add("HOST", host)
+	return someRequest
+}
+
+func getToken(email string, host string) string {
+	token := ""
+	client := &http.Client{}
+	payloadEmail := map[string]string{"email": email}
+
+	path := "/api/email/send/"
+	postBody, _ := json.Marshal(payloadEmail)
+
+	responseBody := bytes.NewBuffer(postBody)
+	request, err := http.NewRequest("POST", fmt.Sprintf("%s%s", host, path), responseBody)
+	requestWIthHeaders := addHeadersOnRequest(request, host)
+	resp, err := client.Do(requestWIthHeaders)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	// TODO correct parsing
+	fmt.Println(body)
+	sb := string(body)
+	fmt.Printf(sb)
+	return token
+}
+
+func (user SomeUser) updateUnsettedData(host string) {
+	// call that after user init
+	user.Token = getToken(user.Email, host)
 }
 
 func main() {
 	newUser := SomeUser{
-		Name:     faker.Name(),
-		Gender:   getRandomGender(),
-		Email:    faker.Email(),
-		Location: getRandomLocation(),
+		Gender:      getRandomGender(),
+		Name:        faker.Name(),
+		Location:    getRandomLocation(),
+		Email:       faker.Email(),
+		AppVersion:  getAppVersion(),
+		Bio:         faker.Paragraph(),
+		Token:       "",
+		UserHeaders: "",
+		IdUser:      0,
+		Interview:   false,
 	}
-	fmt.Println(newUser)
+	newUser.updateUnsettedData(variable.HOST)
 }
