@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  postgres-go:
+    image: postgres:14.1-alpine
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "example"
+    ports:
+      - "45432:5432"
