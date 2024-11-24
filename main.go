@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"grpcchat/database"
 	"grpcchat/variable"
 	"io/ioutil"
 	"log"
@@ -106,12 +107,36 @@ func getToken(email string, host string) string {
 	return token
 }
 
-func (user SomeUser) updateUnsettedData(host string) {
+func (user *SomeUser) updateUnsettedData(host string) {
 	// call that after user init
 	user.Token = getToken(user.Email, host)
+
+	// Store user in database
+	userHeadersJSON, _ := json.Marshal(getUserHeaders(user.Token, host))
+	err := database.StoreUser(
+		user.Gender,
+		user.Name,
+		user.Location,
+		user.Email,
+		user.AppVersion,
+		user.Bio,
+		user.Token,
+		string(userHeadersJSON),
+		user.IdUser,
+		user.Interview,
+	)
+	if err != nil {
+		log.Printf("Error storing user in database: %v", err)
+	}
 }
 
 func main() {
+	// Initialize database connection
+	if err := database.InitDB(); err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer database.DB.Close()
+
 	newUser := SomeUser{
 		Gender:      getRandomGender(),
 		Name:        faker.Name(),
